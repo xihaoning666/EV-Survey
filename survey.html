@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lake Macquarie EV &amp; E-Bus Survey</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    :root{--bg:#f4f7f6;--surface:#fff;--primary:#0d5c63;--primary-light:#e8f4f3;--accent:#c44536;--text:#1a2b2e;--muted:#5c6b6e;--border:#d8e3e4;--radius:10px;--shadow:0 4px 24px rgba(13,92,99,.08);font-family:system-ui,-apple-system,sans-serif;line-height:1.5;color:var(--text)}
+    body{margin:0;background:linear-gradient(160deg,#e8f4f3 0%,#f4f7f6 40%,#faf8f5 100%);min-height:100vh}
+    .shell{max-width:820px;margin:0 auto;padding:1.5rem 1rem 3rem}
+    .header{text-align:center;margin-bottom:1.5rem}
+    .logo-row{display:flex;align-items:center;justify-content:center;gap:2.5rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:1rem 0}
+    .logo-row img{height:88px;width:auto;max-width:320px;object-fit:contain}
+    .header h1{font-size:1.65rem;color:var(--primary);margin:0 0 .35rem}
+    .header p{margin:0;color:var(--muted);font-size:.95rem}
+    .progress{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:1.25rem}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),#1a8a8f);transition:width .35s}
+    .card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.75rem 1.5rem;border:1px solid var(--border)}
+    .part-label{display:inline-block;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);background:var(--primary-light);padding:.2rem .55rem;border-radius:4px;margin-bottom:.75rem}
+    .card h2{font-size:1.25rem;margin:0 0 .75rem}
+    .intro{color:var(--muted);margin:0 0 1.25rem;font-size:.95rem}
+    .conseq{background:#fff8e6;border-left:4px solid #e6a817;padding:.85rem 1rem;margin:1rem 0;font-size:.92rem;border-radius:0 6px 6px 0}
+    .policy-note{background:var(--primary-light);padding:.65rem .85rem;border-radius:6px;font-size:.88rem;margin:.75rem 0}
+    .field{margin-bottom:1.25rem}
+    .field-label{display:block;font-weight:600;margin-bottom:.45rem}
+    .hint{font-weight:400;color:var(--muted);font-size:.88rem;margin:.25rem 0}
+    .options{display:flex;flex-direction:column;gap:.45rem}
+    .option{display:flex;align-items:flex-start;gap:.55rem;padding:.65rem .85rem;border:1.5px solid var(--border);border-radius:8px;cursor:pointer}
+    .option:hover,.option.sel{border-color:var(--primary);background:var(--primary-light)}
+    .option input{margin-top:.2rem;accent-color:var(--primary)}
+    input[type=number],select,textarea{width:100%;max-width:320px;padding:.55rem .75rem;border:1.5px solid var(--border);border-radius:8px;font:inherit}
+    textarea{max-width:100%}
+    .likert-row{padding:.85rem 0;border-bottom:1px solid var(--border)}
+    .likert-scale{display:flex;flex-wrap:wrap;gap:.35rem}
+    .likert-btn{flex:1;min-width:72px;padding:.45rem .25rem;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:.72rem;cursor:pointer}
+    .likert-btn.sel{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .dce-table{width:100%;border-collapse:collapse;font-size:.85rem;margin:1rem 0}
+    .dce-table th,.dce-table td{border:1px solid var(--border);padding:.55rem .45rem;vertical-align:top}
+    .dce-table th{background:var(--primary-light)}
+    .dce-choice{display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;padding:.25rem}
+    .dce-choice input{accent-color:var(--primary);cursor:pointer}
+    .grid{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:.5rem}
+    .grid th,.grid td{border:1px solid var(--border);padding:.4rem;text-align:center}
+    .grid th{background:var(--primary-light);font-size:.72rem}
+    .grid td:first-child,.grid th:first-child{text-align:left;font-weight:600}
+    .grid input{accent-color:var(--primary)}
+    .nav{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;gap:1rem}
+    .btn{padding:.65rem 1.35rem;border-radius:8px;font-weight:600;font-size:.95rem;border:none;cursor:pointer}
+    .btn-p{background:var(--primary);color:#fff}
+    .btn-s{background:#fff;color:var(--primary);border:1.5px solid var(--primary)}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .err{color:var(--accent);font-size:.88rem;margin-top:.35rem}
+    .meta{font-size:.8rem;color:var(--muted);margin-top:.5rem}
+    .open-banner{background:#0d5c63;color:#fff;text-align:center;padding:.65rem;border-radius:8px;margin-bottom:1rem;font-size:.9rem}
+    .open-banner a{color:#fff;font-weight:700}
+    .standalone-item{padding:.85rem 0;border-bottom:1px solid var(--border)}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="open-banner">Open this file directly: <a id="local-link" href="#">survey.html</a> · v4.10 prototype</div>
+    <header class="header">
+      <div class="logo-row">
+        <img src="assets/uon-logo.png" alt="University of Newcastle" />
+        <img src="assets/lmcc-logo.jpeg" alt="Lake Macquarie City Council" />
+      </div>
+      <h1>Lake Macquarie EV &amp; E-Bus Survey</h1>
+      <p>University of Newcastle · v4.10 web prototype · REFERENCE_MONTH 2026-07</p>
+    </header>
+    <div class="progress"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+    <main class="card" id="main"></main>
+  </div>
+  <script src="suburbs-data.js"></script>
+  <script>
+    const SUBURBS = SurveySuburbs.SUBURBS;
+    const suburbsForLga = (lga) => SurveySuburbs.suburbsForLga(lga);
+    const LIKERT = ['Strongly disagree','Disagree','Neither','Agree','Strongly agree'];
+    const ATT = {
+      ENV1:'I am very concerned about climate change.',ENV2:'Exhaust emissions from cars and buses are a serious environmental problem.',ENV3:'I try to reduce my environmental impact in my everyday choices.',ENV4:'Reducing greenhouse-gas emissions should be a high priority for transport in my area.',ENV5:'Air pollution from road traffic harms people\'s health in my community.',
+      ESA1:'Sharp changes in petrol and household energy prices can put real pressure on my household budget.',ESA2:'I feel exposed when fuel prices jump suddenly.',ESA5:'Overseas conflicts can put Australia\'s fuel supply at risk.',ESA7:'I worry that global events could make petrol hard to get, or very expensive, here.',ESA9:'I would like my household to depend less on petrol and oil.',ESA10:'It bothers me that I have no control over the fuel prices I pay.',
+      ATTN1:'To show you are reading carefully, please select "Disagree" for this statement.',
+      TECH1:'I like to be among the first to try new technologies.',TECH2:'I am comfortable using new and unfamiliar technology.',TECH3:'New vehicle technologies generally make driving better.',TECH4:'I enjoy learning about new vehicle technology.',
+      PC1:'I always look for the cheapest option when I shop.',PC2:'I keep a close eye on all my household spending.',PC3:'I am willing to make an extra effort to find lower prices.',
+      MK1:'I like to plan my holidays well in advance.',MK2:'I enjoy trying new recipes at home.',
+      RANGE1:'I would worry about running out of charge on a longer trip.',RANGE2:'I\'m concerned an electric car wouldn\'t have enough range for my needs.',RANGE3:'The driving range of electric cars is still too limited for me.',
+      CHARGE1:'Finding somewhere to charge an electric car would be inconvenient for me.',CHARGE2:'I\'m worried there aren\'t enough public chargers where I travel.',CHARGE3:'Charging an electric car takes too long compared with refuelling.',
+      PT1:'The bus is a realistic option for many of my trips.',PT2:'I would use the bus more if it were more reliable.',PT3:'Buses in my area are too infrequent to be useful.',PT4:'I would feel good about using public transport instead of driving.',
+      ATTN2:'To show you are still reading carefully, please select "Agree" for this statement.'
+    };
+    const Q84_ITEMS = ['Petrol prices','Electricity price volatility / electricity bills','Disruptions to fuel supply from overseas events','Being able to charge affordably (if you had an electric car)','Being able to keep your transport costs predictable'];
+    const Q84_SCALE = ['Not at all','A little','Somewhat','Very','Extremely'];
+    const Q85_ITEMS = ['Access to cheaper off-peak charging','Having rooftop solar at home','A public/kerbside charger near where you live'];
+    const Q85_SCALE = ['Yes, much more','Somewhat','No difference','Unsure'];
+    const VEH_BASE = {'Small car / hatch':28000,'Sedan':38000,'Small–medium SUV':42000,'Large SUV / 4WD':58000,'Ute':52000,'People mover / van':50000};
+    const CHARGE_LEVELS = ['Nearest public charger more than 2 km away','Some public chargers within about 2 km','Many public and kerbside chargers within about 500 m'];
+    const GOV_SUPPORTS = ['None','One-off $3,000 purchase rebate','One-off $2,000 household energy-bill credit (first year only)','Priority + discounted parking at selected local centres (first year)'];
+
+    function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+    function initState(){
+      const attIds=['ENV1','ENV2','ENV3','ENV4','ENV5','ESA1','ESA2','ESA5','ESA7','ESA9','ESA10','TECH1','TECH2','TECH3','TECH4','PC1','PC2','PC3','MK1','MK2'];
+      const attOrder=shuffle(attIds);attOrder.splice(Math.floor(attOrder.length/2),0,'ATTN1');
+      const modIds=['RANGE1','RANGE2','RANGE3','CHARGE1','CHARGE2','CHARGE3','PT1','PT2','PT3','PT4'];
+      const modOrder=shuffle(modIds);modOrder.splice(Math.floor(modOrder.length/2),0,'ATTN2');
+      return {
+        designVersion:'4.10',referenceMonth:'2026-07',startedAt:new Date().toISOString(),
+        step:0,declined:false,terminated:false,dceIdx:0,orderAtt:Math.random()<.5?'pre':'post',orderDce:Math.random()<.5?'A-first':'B-first',attOrder,modOrder,
+        consent:null,s1:'',suburb:'',suburbLga:null,suburbZone:null,age:'',gender:'',driver:'',
+        vehicles:null,fuel:'',vehAge:'',weeklyKm:'',fuelSpend:'',phevPetrol:'',phevElec:'',
+        door:'',ivt:'',tripKm:'',tripCost:'',mode:'',tripFreq:'',fareType:'',fareElig:'',zeroCarFuel:'',
+        q27:{},barriers:[],longTrip:'',
+        dwelling:'',tenure:'',parking:'',charger:'',
+        evExp:'',evFamiliarity:'',replace:'',vehClass:'',newUsed:'',awareness:'',expectedKm:'',expectedUnsure:false,
+        attitudes:{},dceAEx:null,dceA:{},certA:'',consA:'',dceBEx:null,dceB:{},certB:'',anaB:[],consStudy:'',evInt:'',
+        moderators:{},q81:[],q82:'',q83:null,q84:{},q85:{},q8b1:[],q8b2:'',
+        adults:'',children:'0',work:'',edu:'',income:'',solar:'',battery:'',elecBill:'',comments:''
+      };
+    }
+    let S = initState();
+
+    function cv(){
+      const driver=S.driver.includes('No')?0:1;
+      const zero=S.vehicles===0;
+      const parkingOk=['Garage or carport at home','Driveway / off-street at home','Allocated space in shared/communal parking'].includes(S.parking);
+      const chargerOk=['Yes — a power point is already there','Yes — one could be installed and I\'m allowed to'].includes(S.charger);
+      const homeCharge=(parkingOk&&chargerOk)?1:0;
+      const showCar=S.mode==='Drive myself'&&driver===1;
+      let sqLabel='Travel as you do now (your current way)';
+      if(S.mode==='Drive myself')sqLabel='Drive (as you do now)';
+      else if(S.mode==='Bus'||S.mode==='Lake Macquarie On Demand')sqLabel='Your current bus / On Demand service';
+      const door=+S.door||0;const ivt=+S.ivt||door;const km=+S.tripKm||10;
+      let busBase=30;
+      if(S.mode==='Walk or cycle')busBase=Math.max(10,3*km);
+      else if(S.mode==='Bus'||S.mode==='Lake Macquarie On Demand')busBase=ivt||door||30;
+      else busBase=ivt||door||30;
+      busBase=Math.max(10,Math.min(90,busBase));
+      let weeklyKmHelper=null;
+      if(zero){if(!S.expectedUnsure&&S.expectedKm)weeklyKmHelper=+S.expectedKm;}
+      else if(S.weeklyKm)weeklyKmHelper=+S.weeklyKm;
+      const subEntry=SUBURBS.find(s=>s.name===S.suburb);
+      const onDemand=subEntry?.onDemand&&SurveySuburbs.inLga(subEntry,'Lake Macquarie')&&S.s1==='Lake Macquarie';
+      return {driver,zero,homeCharge,showCar,sqLabel,busBase,km,weeklyKmHelper,onDemand};
+    }
+
+    function flow(){
+      const dceA=['dceA1','dceA2','dceA3','dceA4'];
+      const dceB=['dceB1','dceB2','dceB3','dceB4'];
+      const dce=S.orderDce==='A-first'?[...dceA,...dceB]:[...dceB,...dceA];
+      const post=['mods','energy','chargers','demo','close'];
+      let f=['welcome','screening','travel','home','ev'];
+      if(S.orderAtt==='pre')f=[...f,'attitudes',...dce,...post];
+      else f=[...f,...dce,'mods','attitudes','energy','chargers','demo','close'];
+      return f;
+    }
+
+    function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+    function radio(name,label,opts,val,field,onchange){
+      const handler=onchange||`set('${field}',this.value)`;
+      return `<div class="field"><span class="field-label">${esc(label)}</span><div class="options">${opts.map(o=>`<label class="option ${val===o?'sel':''}"><input type="radio" name="${name}" value="${esc(o)}" ${val===o?'checked':''} onchange="${handler}">${esc(o)}</label>`).join('')}</div></div>`;
+    }
+    function num(label,field,val,suffix='',hint=''){
+      return `<div class="field"><label class="field-label">${esc(label)}</label>${hint?`<p class="hint">${esc(hint)}</p>`:''}<input type="number" value="${esc(val)}" oninput="set('${field}',this.value)"> ${esc(suffix)}</div>`;
+    }
+    function likert(ids,store){
+      return ids.map(id=>`<div class="likert-row"><p>${esc(ATT[id])}</p><div class="likert-scale">${LIKERT.map((l,i)=>`<button type="button" class="likert-btn ${S[store][id]==i+1?'sel':''}" onclick="setNested('${store}','${id}',${i+1})">${esc(l)}</button>`).join('')}</div></div>`).join('');
+    }
+    function checkGroup(label,field,opts,max){
+      return `<div class="field"><span class="field-label">${esc(label)}</span><div class="options">${opts.map(o=>`<label class="option ${S[field].includes(o)?'sel':''}"><input type="checkbox" ${S[field].includes(o)?'checked':''} onchange="toggleArr('${field}','${o}',${max||0})">${esc(o)}</label>`).join('')}</div></div>`;
+    }
+    function gridFreq(label,columns,rows,store){
+      return `<div class="field"><span class="field-label">${esc(label)}</span><table class="grid"><tr><th></th>${columns.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>${rows.map(r=>{const key=r.replace(/\\/g,'\\\\').replace(/'/g,"\\'");return `<tr><td>${esc(r)}</td>${columns.map(c=>{const ck=c.replace(/'/g,"\\'");return `<td><input type="radio" name="g-${store}-${r.replace(/\\W/g,'')}" ${S[store][r]===c?'checked':''} onchange="setGrid('${store}','${key}','${ck}')"></td>`;}).join('')}</tr>`;}).join('')}</table></div>`;
+    }
+    function conseqText(){
+      if(S.s1==='Newcastle')return 'Your answers will help shape real transport and charging decisions in your region. This study is led by the University of Newcastle and funded by Lake Macquarie City Council. The results, which cover the wider Hunter region including Newcastle, will be provided to the Council and shared with transport and infrastructure planners to help inform real decisions about where to prioritise electric-vehicle chargers and how to improve local bus services. Because your answers can genuinely influence these decisions, please answer every question as carefully as if your choices were real.';
+      return 'Your answers will be used by Lake Macquarie City Council. The results of this survey will be provided to the Council to help inform real decisions about where to prioritise electric-vehicle chargers across Lake Macquarie and how to improve local bus services. Because your answers can genuinely influence these decisions, please answer every question as carefully as if your choices were real.';
+    }
+    function modeOptions(c){
+      const base=['Drive myself','Passenger in someone else\'s car','Bus',...(c.onDemand?['Lake Macquarie On Demand']:[]),'Walk or cycle','Taxi / rideshare','Other'];
+      return c.driver?base:base.filter(m=>m!=='Drive myself');
+    }
+    function getEvCost100(homeCharge,level){
+      const home=[3,6,10],pub=[8,12,18];
+      return (homeCharge?home:pub)[level%3];
+    }
+    function getChargingAccess(homeCharge,level){
+      const pub=CHARGE_LEVELS[level%3];
+      return homeCharge?`You can charge at home overnight; ${pub.toLowerCase()}`:pub;
+    }
+    function dceATasks(){
+      const c=cv();const base=VEH_BASE[S.vehClass]||42000;
+      const pm=[.9,1,1.15],ep=[-3000,3000,10000,18000],pc=[12,15,18],rng=[300,450,600],fc=[15,30,60];
+      return [0,1,2,0,1,2,1,0].map((s,i)=>({
+        _id:i+1,pp:Math.round(base*pm[s%3]/500)*500,ep:Math.round((base*pm[s%3]+ep[(s+i)%4])/500)*500,
+        range:rng[(s+i)%3],fc:fc[(i+s)%3],access:getChargingAccess(c.homeCharge,(s+i)%3),
+        pc:pc[(s+i)%3],ec:getEvCost100(c.homeCharge,(i+1)%3),gov:GOV_SUPPORTS[(i+s)%4]
+      }));
+    }
+    function getBusFare(km,fareType,level){
+      const bands=[{max:3,f:[4.6,6.6,8]},{max:8,f:[6.2,9,10.8]},{max:999,f:[8,11.6,13.8]}];
+      const b=bands.find(x=>km<=x.max)||bands[2];
+      let fare=b.f[level%3];
+      if(fareType&&(fareType.includes('concession')||fareType.includes('free')))fare=Math.round(fare*.5*10)/10;
+      return fare;
+    }
+    function dceBTasks(){
+      const c=cv();const freqs=['A bus every 10 min','A bus every 15 min','A bus every 30 min'];
+      const rels=['70%','85%','95%'];const walks=[5,10,15];const stops=['Basic stop','Covered shelter','Covered shelter + lighting + seating'];
+      const mults=c.showCar?[1.3,1.6,2.0]:[.85,1,1.15];const fuel=[.12,.15,.18];const park=[0,3,5];
+      return [0,1,2,0,1,2].map((s,i)=>{
+        let ivt=Math.max(10,Math.min(90,Math.round(c.busBase*mults[s%3])));
+        const carCost=c.showCar?Math.round((2*c.km*fuel[s%3]+park[i%3])*10)/10:null;
+        return { _id:i+1,freq:freqs[(s+i)%3],rel:`${rels[(i+s)%3]} of buses on time`,ivt,walk:walks[(i+s)%3],stop:stops[i%3],
+          fare:getBusFare(c.km,S.fareType,s%3),car:carCost,rt:i%2===0,type:i%2?'Electric bus':'Diesel bus'};
+      });
+    }
+    function dceATbl(task,opts){
+      const example=opts&&opts.example;const taskId=opts&&opts.taskId;const c=cv();
+      const sq=c.zero?'Continue without owning or leasing a car':'Keep current vehicle';
+      const rows=[['Purchase price',`$${task.pp.toLocaleString()}`,`$${task.ep.toLocaleString()}`,'—'],['Driving range (full)','Ample',`${task.range} km`,'—'],['Refuel / recharge time','~5 min',`${task.fc} min (fast charge ~300 km)`,'—'],['Public / kerbside chargers near home','— (service stations)',task.access,'—'],['Cost to drive 100 km',`$${task.pc}`,`$${task.ec}`,'—'],['Government support','None',task.gov,'—']];
+      const name=example?'dcea-ex':'dcea'+taskId;
+      const picked=v=>example?S.dceAEx===v:S.dceA[taskId]===v;
+      const pick=v=>example?`set('dceAEx','${v}')`:`setNested('dceA',${taskId},'${v}')`;
+      let helper='';
+      if(example&&c.weeklyKmHelper)helper=`<p class="hint">At ${c.weeklyKmHelper} km/week, that's about $${Math.round(c.weeklyKmHelper*task.pc/100)} vs $${Math.round(c.weeklyKmHelper*task.ec/100)} per week to run.</p>`;
+      return helper+`<table class="dce-table"><tr><th>Attribute</th><th>Petrol car</th><th>Electric car (EV)</th><th>${esc(sq)}</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}<tr><td><b>Your choice</b></td>${['petrol','ev','sq'].map(v=>`<td><label class="dce-choice"><input type="radio" name="${name}" ${picked(v)?'checked':''} onchange="${pick(v)}"> ${v==='sq'?'Status quo':v.toUpperCase()}</label></td>`).join('')}</tr></table>`;
+    }
+    function dceBTbl(t,c,opts){
+      const example=opts&&opts.example;
+      const id=t._id||1;
+      const rows=[['Service frequency at the time you usually travel','—',t.freq],['On-time reliability','—',t.rel],['Usual trip time, door to door, one way',`${S.door||20} min`,'—'],['Bus in-vehicle time, one way','—',`${t.ivt} min`],['Walk to the stop','—',`${t.walk} min`],['Stop quality','—',t.stop],['Cost of the return trip',c.showCar?`$${t.car} (fuel + parking)`:`$${S.tripCost||0}`,`$${t.fare.toFixed(2)} fare (return)`],['Real-time arrival info','—',t.rt?'Yes':'No'],['Vehicle type','—',t.type]];
+      const picked=v=>example?S.dceBEx===v:S.dceB[id]===v;
+      const pick=v=>example?`set('dceBEx','${v}')`:`setNested('dceB',${id},'${v}')`;
+      const name=example?'bex':'dce-b-'+id;
+      return `<table class="dce-table"><tr><th>Attribute</th><th>${esc(c.sqLabel)}</th><th>Take the bus</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}<tr><td><b>Your choice</b></td><td><label class="dce-choice"><input type="radio" name="${name}" ${picked('sq')?'checked':''} onchange="${pick('sq')}"> Status quo</label></td><td><label class="dce-choice"><input type="radio" name="${name}" ${picked('bus')?'checked':''} onchange="${pick('bus')}"> Bus</label></td></tr></table>`;
+    }
+
+    window.set=function(k,v){S[k]=v;render();};
+    window.setS1=function(v){
+      S.s1=v==='Yes — Lake Macquarie'?'Lake Macquarie':v==='Yes — Newcastle'?'Newcastle':'Neither';
+      S.suburb='';S.suburbLga=null;S.suburbZone=null;
+      if(S.s1==='Newcastle'&&S.mode==='Lake Macquarie On Demand')S.mode='';
+      render();
+    };
+    window.setSuburb=function(val){const e=SUBURBS.find(x=>x.name===val);S.suburb=val;S.suburbLga=e?SurveySuburbs.resolveLga(e,S.s1):null;S.suburbZone=e?e.zone:null;render();};
+    window.setVehicles=function(v){S.vehicles=v==='3 or more'?3:+v;render();};
+    window.setNested=function(store,k,v){S[store][k]=v;render();};
+    window.setGrid=function(store,row,col){S[store][row]=col;render();};
+    window.toggleArr=function(field,val,max){const a=S[field];const i=a.indexOf(val);if(i>=0)S[field]=a.filter(x=>x!==val);else if(!max||a.length<max)S[field]=[...a,val];render();};
+    window.setQ83=function(n){S.q83=n;render();};
+
+    function err(m){const e=document.createElement('p');e.className='err';e.id='err';e.textContent=m;document.getElementById('main').appendChild(e);}
+    window.next=function(){
+      document.getElementById('err')?.remove();
+      const f=flow();const cur=f[S.step]||'done';
+      if(cur==='welcome'){if(S.declined){S.step=f.length;render();return;}if(!S.consent){err('Please select "I agree" to continue.');return;}}
+      if(cur==='screening'){
+        if(S.s1==='Neither'){S.terminated=true;S.step=f.length;render();return;}
+        if(!S.s1){err('Please answer S1.');return;}if(!S.suburb){err('Please select your suburb (S2).');return;}
+        if(!S.age||!S.gender||!S.driver){err('Please answer all screening questions.');return;}
+      }
+      if(cur==='travel'){
+        if(S.vehicles==null){err('Please answer Q2.1.');return;}
+        const c=cv();
+        if(!c.zero&&(!S.fuel||!S.vehAge||!S.weeklyKm||(!S.fuelSpend&&S.fuel!=='Plug-in hybrid'))){err('Please complete vehicle questions (Q2.2–Q2.5).');return;}
+        if(S.fuel==='Plug-in hybrid'&&(!S.phevPetrol||!S.phevElec)){err('Please enter both PHEV spend fields.');return;}
+        if(!S.door||S.ivt===''||!S.tripKm||S.tripCost===''||!S.mode||!S.tripFreq||!S.fareType){err('Please complete trip questions (Q2.6–Q2.6f).');return;}
+        if(+S.ivt>+S.door){err('In-vehicle time cannot exceed door-to-door time.');return;}
+        if(c.zero&&c.driver&&S.mode==='Drive myself'&&!S.zeroCarFuel){err('Please answer Q2.6d2.');return;}
+        if(S.fareType==='Unsure'&&!S.fareElig){err('Please answer Q2.6g.');return;}
+      }
+      if(cur==='dceA2'&&!S.dceAEx){err('Please select an option in the example.');return;}
+      if(cur==='dceA3'){const id=S.dceIdx+1;if(!S.dceA[id]){err('Please select an option.');return;}if(S.dceIdx<7){S.dceIdx++;render();return;}}
+      if(cur==='dceB2'&&!S.dceBEx){err('Please select an option in the example.');return;}
+      if(cur==='dceB3'){const id=S.dceIdx+1;if(!S.dceB[id]){err('Please select an option.');return;}if(S.dceIdx<5){S.dceIdx++;render();return;}}
+      S.dceIdx=0;S.step=Math.min(S.step+1,f.length);render();window.scrollTo(0,0);
+    };
+    window.back=function(){S.dceIdx=0;S.step=Math.max(S.step-1,0);render();window.scrollTo(0,0);};
+    window.finish=function(){S.completedAt=new Date().toISOString();S.step=flow().length;render();};
+    window.dl=function(){const blob=new Blob([JSON.stringify({...S,computed:cv()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='LM_EV_Survey_'+Date.now()+'.json';a.click();};
+
+    function render(){
+      const f=flow();const cur=f[S.step]||'done';const c=cv();
+      document.getElementById('prog').style.width=((S.step+1)/f.length*100)+'%';
+      const suburbOpts=suburbsForLga(S.s1).map(s=>`<option value="${esc(s.name)}" ${S.suburb===s.name?'selected':''}>${esc(s.name)}</option>`).join('');
+      const q8b2Opts=(S.s1==='Newcastle'?suburbsForLga('Newcastle'):SurveySuburbs.lakeMacquarieSuburbs()).map(s=>`<option value="${esc(s.name)}" ${S.q8b2===s.name?'selected':''}>${esc(s.name)}</option>`).join('');
+      let html='';
+
+      if(cur==='welcome'){
+        html=`<span class="part-label">Part 0</span><h2>Welcome</h2>
+        <p class="intro">Thank you for taking part in this study run by the University of Newcastle. We are asking Lake Macquarie and Newcastle residents about everyday travel, cars, and buses, and about how recent changes in petrol and energy prices affect your choices.</p>
+        <p class="intro">The survey takes about 18–20 minutes. There are no right or wrong answers — we want your honest views.</p>
+        <p class="intro">Your participation is voluntary and you can stop at any time. Your answers are anonymous. This study has been approved by the University of Newcastle Human Research Ethics Committee (Approval No. [TBC]).</p>
+        <div class="options"><label class="option ${S.consent===true?'sel':''}"><input type="radio" name="c" onchange="S.consent=true;S.declined=false;render()"> I have read the above and I agree to take part</label>
+        <label class="option ${S.declined?'sel':''}"><input type="radio" name="c" onchange="S.consent=false;S.declined=true;render()"> I do not wish to take part</label></div>`;
+      } else if(cur==='screening'){
+        html=`<span class="part-label">Part 1</span>
+        ${radio('s1','S1. Do you currently live in the Lake Macquarie or Newcastle local government area (LGA)?',['Yes — Lake Macquarie','Yes — Newcastle','No, neither'],S.s1==='Lake Macquarie'?'Yes — Lake Macquarie':S.s1==='Newcastle'?'Yes — Newcastle':S.s1==='Neither'?'No, neither':'','s1','setS1(this.value)')}
+        ${S.s1&&S.s1!=='Neither'?`<div class="conseq">${esc(conseqText())}</div>`:''}
+        <div class="field"><label class="field-label">S2. What is your residential suburb?</label><select onchange="setSuburb(this.value)" ${!S.s1||S.s1==='Neither'?'disabled':''}><option value="">— Select suburb —</option>${suburbOpts}</select></div>
+        ${radio('age','S3. Which age group are you in?',['18–24','25–34','35–44','45–54','55–64','65–74','75+'],S.age,'age')}
+        ${radio('gender','S4. Are you …?',['Female','Male','Non-binary / other','Prefer not to say'],S.gender,'gender')}
+        ${radio('driver','S5. Do you currently drive?',['Yes — I hold a licence and drive regularly','Occasionally','No — I don\'t drive'],S.driver,'driver')}`;
+      } else if(cur==='travel'){
+        const q22lead=c.driver?'the vehicle you personally drive most often':'your household\'s main vehicle — the one used most often that you know best';
+        const q26ex=S.s1==='Newcastle'?'your nearest main shopping, work, study or town centre':'Charlestown, Warners Bay/Belmont, Glendale/Cardiff, Toronto or Morisset';
+        html=`<span class="part-label">Part 2</span><p class="intro">These answers personalise your later choice questions, so accuracy matters.</p>
+        ${radio('veh','Q2.1 How many cars / vehicles does your household own or lease?',['0','1','2','3 or more'],S.vehicles==null?'':S.vehicles>=3?'3 or more':String(S.vehicles),'vehicles','setVehicles(this.value)')}`;
+        if(!c.zero){
+          html+=radio('fuel',`Q2.2 Thinking of ${q22lead} — what fuel does it use?`,['Petrol','Diesel','Hybrid (petrol + electric)','Plug-in hybrid','Fully electric','Other'],S.fuel,'fuel');
+          html+=radio('vehAge','Q2.3 About how old is that vehicle?',['<2 yrs','2–5 yrs','6–10 yrs','>10 yrs'],S.vehAge,'vehAge');
+          html+=num('Q2.4 About how many kilometres is that vehicle driven in a typical week?','weeklyKm',S.weeklyKm,'km per week','If unsure, give your best estimate (0–1500)');
+          if(S.fuel==='Plug-in hybrid'){html+=num('Q2.5 Petrol spend per week','phevPetrol',S.phevPetrol,'$');html+=num('Q2.5 Home-charging/electricity spend per week','phevElec',S.phevElec,'$');}
+          else html+=num(`Q2.5 Weekly spend on ${S.fuel==='Fully electric'?'charging (home + public)':'petrol/diesel'}`,'fuelSpend',S.fuelSpend,'$ per week');
+        }
+        html+=num(`Q2.6 Door-to-door time to nearest major centre (${q26ex})`,'door',S.door,'minutes');
+        html+=num('Q2.6a In-vehicle or on-bus minutes (0 if walk/cycle whole way)','ivt',S.ivt,'minutes');
+        html+=num('Q2.6b Trip distance, one way','tripKm',S.tripKm,'km');
+        html+=num('Q2.6c Return trip out-of-pocket cost','tripCost',S.tripCost,'$ for the return trip','Enter $0 if no direct cost');
+        html+=radio('mode','Q2.6d How do you usually make this trip?',modeOptions(c),S.mode,'mode');
+        if(c.zero&&c.driver&&S.mode==='Drive myself')html+=radio('zcf','Q2.6d2 What fuel or energy type does the vehicle you usually drive for this trip use?',['Petrol','Diesel','Hybrid (petrol + electric)','Plug-in hybrid','Fully electric','Other','Unsure'],S.zeroCarFuel,'zeroCarFuel');
+        html+=radio('tripFreq','Q2.6e How often do you usually make this trip?',['4+ times per week','1–3 times per week','1–3 times per month','Less than monthly','Rarely / only when needed'],S.tripFreq,'tripFreq');
+        html+=radio('fare','Q2.6f If you made this trip by bus, would you normally pay:',['An adult fare','A concession or senior/pensioner fare','I travel free or near-free (e.g., Gold Opal)','Unsure'],S.fareType,'fareType');
+        if(S.fareType==='Unsure')html+=radio('felig','Q2.6g Are you eligible for a concession, senior or pensioner public-transport fare?',['Yes','No','Unsure'],S.fareElig,'fareElig');
+        const q27rows=['Car as driver','Car as passenger','Bus (fixed route)',...(c.onDemand?['Lake Macquarie On Demand']:[]),'Walk / cycle for transport'];
+        html+=gridFreq('Q2.7 In a typical month, how often do you use each of the following?',['Never','Rarely','Weekly','Most days'],q27rows,'q27');
+        html+=checkGroup('Q2.8 What stops you using the bus more often? (select all)','barriers',['Too infrequent','Unreliable / late','Takes too long','Stops too far away','Doesn\'t go where I need','Fares','I prefer driving','Nothing — I already use it','Other']);
+        html+=radio('lt','Q2.9 How often does your household make a single car trip of 200 km or more one way?',['Never / almost never','A few times a year','About monthly','Weekly or more'],S.longTrip,'longTrip');
+      } else if(cur==='home'){
+        html=`<span class="part-label">Part 3</span>
+        ${radio('dw','Q3.1 Which best describes your home?',['Detached house','Townhouse / villa','Apartment / unit','Other'],S.dwelling,'dwelling')}
+        ${radio('ten','Q3.2 Do you own or rent your home?',['Own (with or without mortgage)','Rent','Other'],S.tenure,'tenure')}
+        ${radio('park',c.zero?'Q3.3 If your household acquired a car, where would it most likely be parked overnight?':'Q3.3 Where do you usually park your main vehicle overnight?',['Garage or carport at home','Driveway / off-street at home','Allocated space in shared/communal parking','Shared/communal parking, no allocated space','On the street near home','No regular spot'],S.parking,'parking')}
+        ${radio('ch','Q3.4 Could an electric-car charger realistically be used or installed at that overnight parking location?',['Yes — a power point is already there','Yes — one could be installed and I\'m allowed to','Maybe, but I\'d need landlord/strata permission','No / not allowed / not feasible','Unsure'],S.charger,'charger')}`;
+      } else if(cur==='ev'){
+        html=`<span class="part-label">Part 4</span>
+        ${radio('ev','Q4.1 Have you ever driven or ridden in a fully electric vehicle?',['Yes, driven','Yes, ridden as passenger','No'],S.evExp,'evExp')}
+        ${radio('evf','Q4.6 How much experience do you have with electric cars?',['None — I have never been in one','I have been a passenger in one','I have driven one (test drive, hire, or a friend\'s or family member\'s car)','My household owns or leases one / I drive one regularly'],S.evFamiliarity,'evFamiliarity')}
+        ${radio('rep','Q4.2 How likely is your household to acquire, buy, lease or replace a vehicle in the next 3 years?',['Already planning to','Quite likely','Possibly','Unlikely','Definitely not'],S.replace,'replace')}
+        ${radio('vc','Q4.3 If your household acquired or replaced a vehicle, what type would you most likely be looking for?',['Small car / hatch','Sedan','Small–medium SUV','Large SUV / 4WD','Ute','People mover / van'],S.vehClass,'vehClass')}
+        ${radio('nu','Q4.3b Would you most likely consider:',['New vehicle only','Used vehicle only','Either new or used','Unsure'],S.newUsed,'newUsed')}
+        ${radio('aw','Q4.4 Before today, how aware were you of government support for EVs?',['Very aware','Somewhat','Heard of it','Not at all'],S.awareness,'awareness')}`;
+        if(c.zero){html+=num('Q4.5 If your household acquired a car, expected weekly km','expectedKm',S.expectedKm,'km per week');html+=`<label class="option ${S.expectedUnsure?'sel':''}" style="max-width:320px"><input type="checkbox" ${S.expectedUnsure?'checked':''} onchange="S.expectedUnsure=this.checked;if(this.checked)S.expectedKm='';render()"> Unsure</label>`;}
+      } else if(cur==='attitudes'){
+        html=`<span class="part-label">Part 5</span><p class="intro">Please say how much you agree with each statement.</p>${likert(S.attOrder,'attitudes')}`;
+      } else if(cur==='dceA1'){
+        html=`<span class="part-label">Part 6 — DCE-A</span><h2>Your next vehicle</h2>
+        <p class="intro">We'd now like you to imagine your household is choosing its next vehicle within the next 3 years. In studies like this, people often say they would pay more for new or "green" technology than they really would. Please choose as if you were really spending your household's money.</p>
+        <p class="intro">You'll see 8 choices between petrol, EV, and ${c.zero?'continuing without a car':'keeping your current vehicle'}. Class: <strong>${esc(S.vehClass||'your stated preference')}</strong>.</p>
+        <p class="policy-note">Government support levels shown are possible policy scenarios, not necessarily current programs.</p>`;
+      } else if(cur==='dceA2'){
+        html=`<span class="part-label">Example — DCE-A</span><p class="intro">This is an example — your real choices follow.</p>${dceATbl({pp:42000,ep:50000,range:450,fc:30,access:getChargingAccess(c.homeCharge,1),pc:15,ec:getEvCost100(c.homeCharge,1),gov:'One-off $3,000 purchase rebate'},{example:true})}`;
+      } else if(cur==='dceA3'){
+        const tasks=dceATasks();const t=tasks[S.dceIdx];
+        html=`<span class="part-label">Choice ${S.dceIdx+1} of ${tasks.length}</span>${dceATbl(t,{taskId:t._id})}`;
+      } else if(cur==='dceA4'){
+        html=`<span class="part-label">Follow-up — DCE-A</span>${num('CERT-A. How sure are you that you would actually make the choices you just made? (0–10)','certA',S.certA,'')}${radio('cons','CONS-A. When answering, how much did you believe your answers could influence real decisions by the Council?',['Not at all','A little','Somewhat','A lot'],S.consA,'consA')}`;
+      } else if(cur==='dceB1'){
+        html=`<span class="part-label">Part 7 — DCE-B</span><h2>Your trip — current way vs the bus</h2>
+        <p class="intro">Now think about a typical trip to your nearest centre. Each time, choose between travelling the way you do now and the bus service described. You'll see 6 choices. Travel times are one way; costs are for the whole return trip.</p>
+        <p class="policy-note">Buses are described as either diesel or electric. Electric buses have no tailpipe exhaust at street level and are usually quieter.</p>`;
+      } else if(cur==='dceB2'){
+        html=`<span class="part-label">Example — DCE-B</span><p class="intro">This is an example — your real choices follow.</p>${dceBTbl(dceBTasks()[0],c,{example:true})}`;
+      } else if(cur==='dceB3'){
+        const tasks=dceBTasks();const t=tasks[S.dceIdx];
+        html=`<span class="part-label">Choice ${S.dceIdx+1} of ${tasks.length}</span>${dceBTbl(t,c)}`;
+      } else if(cur==='dceB4'){
+        html=`<span class="part-label">Follow-up — DCE-B</span>${num('CERT-B. How sure are you that you would actually choose this way in real life? (0–10)','certB',S.certB,'')}
+        ${checkGroup('ANA-B. Which of these did you mostly ignore when answering the bus choices?','anaB',['Frequency','Reliability','Bus in-vehicle time','Walk time','Fare','Stop quality','Real-time info','Bus type (diesel/electric)','Car cost','None'])}`;
+      } else if(cur==='mods'){
+        html=`<span class="part-label">Part 7B</span><p class="intro">A few more views (after the choice tasks).</p>${likert(S.modOrder,'moderators')}
+        <div class="standalone-item">${radio('cs','CONS_STUDY. When answering the vehicle and bus choice tasks, how much did you believe your answers could influence real decisions?',['Not at all','A little','Somewhat','A lot'],S.consStudy,'consStudy')}</div>
+        ${num('EVINT. How likely is your household\'s next vehicle to be fully electric? (0 = definitely not … 10 = definitely yes)','evInt',S.evInt,'')}`;
+      } else if(cur==='energy'){
+        html=`<span class="part-label">Part 8</span>
+        ${checkGroup('Q8.1 Thinking about recent petrol-price changes, have you done any of the following?','q81',['Drive less / combine trips','Considered a more fuel-efficient vehicle','Considered an electric car','Shifted some trips to bus / walk / cycle','No change','Other'])}
+        ${radio('q82','Q8.2 Have recent electricity prices changed your interest in owning or leasing an electric car?',['Much more interested','Somewhat more','No difference','Somewhat less','Much less','Unsure'],S.q82,'q82')}
+        <div class="field"><span class="field-label">Q8.3 When you think about electric cars, which matters more?</span><div class="likert-scale">${[1,2,3,4,5].map(n=>`<button type="button" class="likert-btn ${S.q83===n?'sel':''}" onclick="setQ83(${n})">${n===1?'Environment':n===3?'Both':n===5?'Saving money':n}</button>`).join('')}</div></div>
+        ${gridFreq('Q8.4 How worried are you about each of the following?',Q84_SCALE,Q84_ITEMS,'q84')}
+        ${gridFreq('Q8.5 Would any of the following make you more interested in an electric car?',Q85_SCALE,Q85_ITEMS,'q85')}`;
+      } else if(cur==='chargers'){
+        const lgaName=S.s1==='Newcastle'?'Newcastle':'Lake Macquarie';
+        html=`<span class="part-label">Part 8B</span>
+        ${checkGroup('Q8B.1 Where would public EV chargers be most useful for your household? (up to 3)','q8b1',['Near my home street','Town centres','Shopping centres','Beaches / lakefront / harbour','Sports & recreation facilities','Libraries / community facilities','Train stations or park-and-ride','Workplaces','Tourist areas','Other'],3)}
+        <div class="field"><label class="field-label">Q8B.2 Please name one suburb or centre in ${esc(lgaName)} where more public chargers would help</label><select onchange="set('q8b2',this.value)"><option value="">— Select suburb —</option>${q8b2Opts}</select></div>`;
+      } else if(cur==='demo'){
+        html=`<span class="part-label">Part 9</span>
+        ${num('Q9.1 Household adults','adults',S.adults,'')}${num('Q9.1 Children under 18','children',S.children,'')}
+        ${radio('work','Q9.2 Work situation',['Full-time','Part-time/casual','Self-employed','Retired','Studying','Home duties','Not currently working'],S.work,'work')}
+        ${radio('edu','Q9.3 Highest education',['School','Trade/TAFE/diploma','Bachelor','Postgraduate'],S.edu,'edu')}
+        ${radio('income','Q9.4 Gross household income (before tax)',['<$650/wk (<$33,800/yr)','$650–$1,000/wk','$1,000–$1,750/wk','$1,750–$3,000/wk','$3,000–$4,500/wk','>$4,500/wk','Prefer not to say'],S.income,'income')}
+        ${radio('solar','Q9.5 Rooftop solar at home?',['Yes','No','Unsure'],S.solar,'solar')}
+        ${radio('bat','Q9.6 Home battery?',['Yes','No','Unsure'],S.battery,'battery')}
+        ${radio('ebill','Q9.7 Electricity bill per quarter',['Under $200','$200–$349','$350–$499','$500–$699','$700 or more','Unsure'],S.elecBill,'elecBill')}`;
+      } else if(cur==='close'){
+        html=`<span class="part-label">Part 10</span><h2>Thank you</h2><p class="intro">Your answers will help shape transport and charging decisions in Lake Macquarie and the wider Hunter region.</p>
+        <div class="field"><label class="field-label">Q10.1 Anything else you'd like the Council to know? (optional)</label><textarea rows="4" oninput="set('comments',this.value)">${esc(S.comments)}</textarea></div>`;
+      } else if(S.terminated){
+        html=`<h2>Thank you for your interest</h2><p>This survey is only open to Lake Macquarie or Newcastle LGA residents aged 18 and over.</p>`;
+      } else if(S.declined){
+        html=`<h2>Thank you</h2><p>You have chosen not to participate.</p>`;
+      } else {
+        html=`<h2>Survey complete!</h2><p>Your answers have been recorded locally.</p><p class="meta">DESIGN_VERSION ${S.designVersion} · REFERENCE_MONTH ${S.referenceMonth} · ORDER_ATT ${S.orderAtt} · ORDER_DCE ${S.orderDce}</p><button class="btn btn-p" onclick="dl()">Download JSON</button>`;
+      }
+
+      const showNav=cur!=='done'&&!S.terminated&&!S.declined;
+      document.getElementById('main').innerHTML=html+(showNav?`<div class="nav"><button class="btn btn-s" onclick="back()" ${S.step===0?'disabled':''}>Back</button><button class="btn btn-p" onclick="${cur==='close'?'finish()':'next()'}">${cur==='close'?'Submit':'Continue'}</button></div>`:'');
+    }
+
+    document.getElementById('local-link').href=location.href;
+    render();
+  </script>
+</body>
+</html>
