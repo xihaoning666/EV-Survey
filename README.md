@@ -83,14 +83,6 @@ src/
   components/          # Reusable form components
 ```
 
-## Notes
-
-- DCE attribute levels in this prototype are **pilot examples**, not the final Ngene design matrix
-- Replace `[TBC]` with the HREC approval number before any data collection
-- Lock the **reference month** (Opal fares, electricity tariffs, fuel prices, vehicle prices) before main fieldwork — currently stamped as `2026-07` in the prototype
-- For GitHub Pages, use `survey.html` (or the root `index.html` redirect). The React `index.html` requires a Vite build and does not run as-is on static hosting
-
-## Tech stack
 
 **Standalone:** HTML · JavaScript · no backend
 
