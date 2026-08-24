@@ -1,4 +1,4 @@
-# Lake Macquarie EV & E-Bus Survey — Web Prototype
+# Lake Macquarie EV & E-Bus Survey — Web 
 
 An online questionnaire based on **LM_EV_eBus_Questionnaire_v4.10**, for **pilot testing** or as a **SurveyEngine programming reference**.
 
@@ -83,14 +83,6 @@ src/
   components/          # Reusable form components
 ```
 
-## Notes
-
-- DCE attribute levels in this prototype are **pilot examples**, not the final Ngene design matrix
-- Replace `[TBC]` with the HREC approval number before any data collection
-- Lock the **reference month** (Opal fares, electricity tariffs, fuel prices, vehicle prices) before main fieldwork — currently stamped as `2026-07` in the prototype
-- For GitHub Pages, use `survey.html` (or the root `index.html` redirect). The React `index.html` requires a Vite build and does not run as-is on static hosting
-
-## Tech stack
 
 **Standalone:** HTML · JavaScript · no backend
 
