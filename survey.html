@@ -109,10 +109,10 @@
     // (a) REQUIRED. Where completed responses are POSTed. Leave '' only for local testing;
     //     with '' the survey cannot collect data and will fall back to a manual download.
     //     Example: 'https://script.google.com/macros/s/AKfy..../exec'
-    SUBMIT_ENDPOINT: '',
+    SUBMIT_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxqzhSDcTMw0xu4hPIzx3HVDcEswpGj6JGWimk4R6pePbZT5BrXDhMw8_r_q5UmvKcU/exec',
 
     // (b) REQUIRED. Human Research Ethics Committee approval number.
-    ETHICS_APPROVAL: 'H-2026-XXXX',
+    ETHICS_APPROVAL: 'H-2026-0175',
 
     // (c) Month to which all dollar levels are locked (paper: "reference month").
     REFERENCE_MONTH: '2026-07',
@@ -283,7 +283,7 @@
   let S = initState();
 
   /* ---- resume ---- */
-  const LS_KEY='lm_ev_survey_v412';
+  const LS_KEY='lm_ev_survey_v413';
   function save(){ if(!CONFIG.RESUME) return; try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
   function loadSaved(){ if(!CONFIG.RESUME) return null; try{ const r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
   function clearSaved(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
@@ -356,6 +356,7 @@
   const ROWS = {};   // store -> {rows, cols}
 
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function fmtMoney(n){ if(n==null||n===''||isNaN(+n)) return '—'; return '$'+Math.round(+n).toLocaleString('en-AU'); }
 
   function radio(name,label,opts,val,field,hint){
     OPTS[field]=opts;
@@ -390,25 +391,30 @@
     const min=(o.min==null?0:o.min), max=(o.max==null?null:o.max);
     return '<div class="field"><label class="field-label" for="f_'+field+'">'+label+'</label>'+
       (o.hint?'<p class="hint">'+o.hint+'</p>':'')+
-      '<div class="numwrap"><input id="f_'+field+'" data-fk="'+field+'" type="number" inputmode="decimal" '+
-      'min="'+min+'"'+(max!=null?' max="'+max+'"':'')+' step="'+(o.step||1)+'" value="'+esc(val)+'" '+
+      '<div class="numwrap"><input id="f_'+field+'" data-fk="'+field+'" type="text" inputmode="decimal" autocomplete="off" '+
+      'value="'+esc(val)+'" '+
       'oninput="setNum(\''+field+'\',this)" onblur="blurNum(\''+field+'\',this,'+min+','+(max==null?'null':max)+')">'+
       (o.suffix?'<span class="suffix">'+esc(o.suffix)+'</span>':'')+'</div></div>';
   }
   window.setNum=function(field,el){
-    let v=el.value.replace(/[^0-9.]/g,'');
-    const dots=(v.match(/\./g)||[]).length;
-    if(dots>1) v=v.slice(0,v.indexOf('.',v.indexOf('.')+1));
-    if(v!==el.value){ const p=el.selectionStart||v.length; el.value=v; try{el.setSelectionRange(p-1,p-1);}catch(e){} }
-    S[field]=v; save(); echoDoor();
+    S[field]=el.value;
+    save();
+    echoDoor();
   };
   window.blurNum=function(field,el,min,max){
-    if(el.value===''){ S[field]=''; save(); echoDoor(); return; }
-    let n=parseFloat(el.value);
+    let v=String(el.value||'').replace(/[^0-9.]/g,'');
+    const dot=v.indexOf('.');
+    if(dot>=0) v=v.slice(0,dot+1)+v.slice(dot+1).replace(/\./g,'');
+    if(v===''){ el.value=''; S[field]=''; save(); echoDoor(); return; }
+    let n=parseFloat(v);
     if(isNaN(n)){ el.value=''; S[field]=''; save(); return; }
     if(min!=null&&n<min) n=min;
     if(max!=null&&n>max) n=max;
-    el.value=String(n); S[field]=String(n); save(); echoDoor();
+    v=String(n);
+    el.value=v;
+    S[field]=v;
+    save();
+    echoDoor();
   };
   function echoDoor(){ const e=document.getElementById('doorEcho'); if(e) e.textContent=(S.door||'—'); }
 
@@ -478,9 +484,11 @@
      ========================================================================== */
   function dceATasks(){
     const c=cv(); const base=VEH_BASE[S.vehClass]||42000;
-    return (DESIGN_A[S.blockA]||DESIGN_A[0]).map((r,i)=>{
+    const blockIdx=(typeof S.blockA==='number'&&DESIGN_A[S.blockA])?S.blockA:0;
+    return (DESIGN_A[blockIdx]||DESIGN_A[0]).map((r,i)=>{
+      if(!Array.isArray(r)||r.length<8) r=[1,1,1,1,1,1,1,0];
       const pp=Math.round(base*A_LEVELS.ppMult[r[0]]/500)*500;
-      return { _id:i+1, block:S.blockA+1, levels:r,
+      return { _id:i+1, block:blockIdx+1, levels:r,
         pp, ep:Math.max(5000, pp + A_LEVELS.evPrem[r[1]]),
         range:A_LEVELS.range[r[2]], fast:A_LEVELS.fast[r[3]],
         availLvl:r[4], access:availText(c.homeCharge,r[4]),
@@ -513,13 +521,13 @@
   function dceATbl(t,opts){
     opts=opts||{}; const c=cv();
     const sq = c.zero ? 'Continue without owning or leasing a car' : 'Keep your current vehicle';
-    const sqRun = c.zero ? '—' : (c.sqCarrier==='electricity' ? '$'+t.ecost : '$'+t.pcost);
+    const sqRun = c.zero ? '—' : (c.sqCarrier==='electricity' ? fmtMoney(t.ecost) : fmtMoney(t.pcost));
     const rows=[
-      ['Purchase price','$'+t.pp.toLocaleString(),'$'+t.ep.toLocaleString(), c.zero?'$0 — no purchase':'$0 — no purchase'],
-      ['Driving range','About 650 km on a full tank', t.range+' km on a full charge', c.zero?'—':'As now'],
-      ['Refuelling, or <b>fast (DC)</b> charging on a long trip','~5 min to fill up', t.fast+' min to add about 300 km', c.zero?'—':'As now'],
-      ['Public / kerbside <b>(AC)</b> chargers near home','Not needed — service stations', t.access, '—'],
-      ['Cost to drive 100 km','$'+t.pcost,'$'+t.ecost, sqRun]
+      ['Purchase price',fmtMoney(t.pp),fmtMoney(t.ep), c.zero?'$0 — no purchase':'$0 — no purchase'],
+      ['Driving range','About 650 km on a full tank', (t.range||'—')+' km on a full charge', c.zero?'—':'As now'],
+      ['Refuelling, or <b>fast (DC)</b> charging on a long trip','~5 min to fill up', (t.fast||'—')+' min to add about 300 km', c.zero?'—':'As now'],
+      ['Public / kerbside <b>(AC)</b> chargers near home','Not needed — service stations', t.access||'—', '—'],
+      ['Cost to drive 100 km',fmtMoney(t.pcost),fmtMoney(t.ecost), sqRun]
     ];
     if(!c.zero && c.sqCarrier) rows[4][3] = sqRun + ' <span style="font-size:.8em">(your current '+(c.sqCarrier==='electricity'?'electricity':'fuel')+' cost under this scenario)</span>';
     rows.push(['Government support','None', t.gov, 'None']);
@@ -696,9 +704,11 @@
              durationSec: Math.round((Date.now()-new Date(S.startedAt).getTime())/1000) } };
   }
   async function postOnce(body){
-    const r = await fetch(CONFIG.SUBMIT_ENDPOINT, { method:'POST', mode:'cors',
+    // Google Apps Script web apps do not return CORS headers to GitHub Pages,
+    // so use no-cors: the POST still reaches the sheet even though the browser
+    // cannot read the response body.
+    await fetch(CONFIG.SUBMIT_ENDPOINT, { method:'POST', mode:'no-cors',
       headers:{'Content-Type':'text/plain;charset=utf-8'}, body });
-    if(!r.ok) throw new Error('HTTP '+r.status);
     return true;
   }
   window.finish=async function(){
@@ -905,8 +915,7 @@
         html='<h2>Sending your answers…</h2><p class="intro">Please keep this page open for a moment.</p>';
       } else if(st==='sent'){
         html='<h2>Thank you — your answers have been received</h2>'+
-          '<p class="intro">Your reference is <span class="code">'+esc(S.respondentId)+'</span>. You can close this page now.</p>'+
-          '<p class="meta">Version '+esc(S.designVersion)+' · reference month '+esc(S.referenceMonth)+'</p>';
+          '<p class="intro">Your reference is <span class="code">'+esc(S.respondentId)+'</span>. You can close this page now.</p>';
       } else {
         html='<h2>Thank you — one last step</h2>'+
           '<p class="err">'+(st==='no_endpoint'
@@ -914,7 +923,7 @@
             : 'We could not send your answers automatically (attempt '+S.submit.attempts+' of 3 failed).')+'</p>'+
           '<p class="intro">Please press <b>Try again</b>. If that does not work, press <b>Download my answers</b> and email the file to the research team; nothing is lost.</p>'+
           '<p><button class="btn btn-p" onclick="retrySubmit()">Try again</button> &nbsp; <button class="btn btn-s" onclick="dl()">Download my answers</button></p>'+
-          '<p class="meta">Reference '+esc(S.respondentId)+' · version '+esc(S.designVersion)+'</p>';
+          '<p class="meta">Reference '+esc(S.respondentId)+'</p>';
       }
     }
 
