@@ -11,8 +11,10 @@
     body{margin:0;background:linear-gradient(160deg,#e8f4f3 0%,#f4f7f6 40%,#faf8f5 100%);min-height:100vh}
     .shell{max-width:820px;margin:0 auto;padding:1.5rem 1rem 3rem}
     .header{text-align:center;margin-bottom:1.5rem}
-    .logo-row{display:flex;align-items:center;justify-content:center;gap:1.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:.5rem 0}
-    .logo-row img{height:96px;width:auto;max-height:96px;max-width:220px;object-fit:contain}
+    .logo-row{display:flex;align-items:center;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:.5rem 0}
+    .logo-row img{width:auto;object-fit:contain}
+    .logo-row .logo-uon{height:128px;max-height:128px}
+    .logo-row .logo-lmcc{height:96px;width:96px;max-height:96px}
     .header h1{font-size:1.55rem;color:var(--primary);margin:0 0 .35rem}
     .header p{margin:0;color:var(--muted);font-size:.9rem}
     .progress{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:.4rem}
@@ -79,8 +81,9 @@
     .dce-card .dce-choice{margin-top:.7rem;display:flex;flex-direction:row;align-items:center}
     .maxhint{color:#8a6100;font-size:.86rem;margin:.35rem 0 0}
     @media (max-width:640px){
-      .logo-row{gap:1.1rem}
-      .logo-row img{height:72px;max-height:72px;max-width:46%}
+      .logo-row{gap:1.25rem}
+      .logo-row .logo-uon{height:100px;max-height:100px}
+      .logo-row .logo-lmcc{height:76px;width:76px;max-height:76px}
       .likert-btn{min-width:calc(20% - .3rem);font-size:.72rem;padding:.55rem .15rem;min-height:48px;line-height:1.15;overflow-wrap:break-word}
       .dce-wrap .dce-table{display:none}
       .dce-cards{display:flex;flex-direction:column;gap:.75rem;margin:1rem 0}
@@ -95,8 +98,8 @@
   <div class="shell">
     <header class="header">
       <div class="logo-row">
-        <img src="assets/uon-logo.png" alt="The University of Newcastle, Australia" />
-        <img src="assets/lmcc-logo.png" alt="Lake Macquarie City" />
+        <img class="logo-uon" src="assets/uon-logo.png" alt="The University of Newcastle, Australia" />
+        <img class="logo-lmcc" src="assets/lmcc-logo.png" alt="Lake Macquarie City" />
       </div>
       <h1>EV &amp; Bus Travel Survey</h1>
       <p>A University of Newcastle study of travel in Lake Macquarie and Newcastle</p>
