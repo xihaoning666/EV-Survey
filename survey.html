@@ -111,7 +111,7 @@
   <script src="suburbs-data.js"></script>
   <script>
   /* ==========================================================================
-     LM/NCL EV & E-BUS SURVEY — v4.14 (pre-launch instrument)
+     LM/NCL EV & E-BUS SURVEY — v4.15 (Pureprofile field build)
      ========================================================================== */
 
   /* ==========================================================================
@@ -130,13 +130,30 @@
     REFERENCE_MONTH: '2026-07',
 
     // (d) Instrument version stamped on every record.
-    DESIGN_VERSION: '4.14',
+    DESIGN_VERSION: '4.15',
 
     // Public PDF copy (GitHub Pages). SharePoint copy: same approved PIS, may require a University login.
     PIS_URL: 'https://xihaoning666.github.io/EV-Survey/PIS.pdf',
 
     RESUME: true,               // save partial answers in this browser so a respondent can resume
-    ESTIMATED_MINUTES: '15'
+    ESTIMATED_MINUTES: '15',
+
+    // (e) Panel integration. Every behaviour below is active only when the entry link
+    //     carries a non-empty PARAM value; bare links behave exactly as before.
+    PANEL: {
+      NAME: 'pureprofile',
+      PARAM: 'ppid',                 // query-string parameter Pureprofile appends to the entry link
+      REDIRECT: {
+        complete:     'https://surveyengine.pureprofile.com/api/v1/universal/payment/completed?num=1&ppid=',
+        screened:     'https://surveyengine.pureprofile.com/api/v1/universal/payment/screened?num=1&ppid=',
+        quotafull:    'https://surveyengine.pureprofile.com/api/v1/universal/payment/quotafull?num=1&ppid=',
+        disqualified: 'https://surveyengine.pureprofile.com/api/v1/universal/payment/disqualified?num=1&ppid='
+      },
+      REDIRECT_DELAY_MS: 1500,       // the "Returning you to Pureprofile" screen stays visible this long
+      NAVIGATE: function(url){ location.replace(url); },   // single navigation point; tests override it
+      QUOTAS: { 'Lake Macquarie': 0, 'Newcastle': 0 },     // cap on COMPLETES per LGA; 0 = no cap
+      DQ: { both_attention_fail: true, min_active_sec: 240 } // real-time disqualification rules
+    }
   };
 
   /* ==========================================================================
@@ -264,19 +281,25 @@
   function rid(){let s='';const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';for(let i=0;i<8;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 
   function initState(){
+    const qs=(function(){try{return new URLSearchParams(location.search);}catch(e){return null;}})();
+    // Pureprofile ids are 41 alphanumerics. Anything else is stripped, never rejected, so a
+    // mangled link still reaches the questionnaire rather than dead-ending a paid panellist.
+    const ppid=String((qs&&qs.get(CONFIG.PANEL.PARAM))||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,64);
+    const srcRaw=String((qs&&qs.get('src'))||'').slice(0,40);
     const attOrder=shuffle(ATT_IDS); attOrder.splice(Math.floor(attOrder.length/2),0,'ATTN1');
     const modOrder=shuffle(MOD_IDS); modOrder.splice(Math.floor(modOrder.length/2),0,'ATTN2');
     return {
       respondentId:rid(),
+      ppid:ppid, panel:ppid?CONFIG.PANEL.NAME:'',
       // Recruitment channel. Tag each link you distribute -- survey.html?src=lmcc-news,
       // ?src=fb-lakemac, ?src=uon, ?src=poster -- and the channel is recorded with no
       // burden on the respondent. Untagged arrivals are asked Q9.5 instead.
-      src:(function(){try{return (new URLSearchParams(location.search).get('src')||'').slice(0,40);}catch(e){return '';}})(),
+      src: srcRaw || (ppid?CONFIG.PANEL.NAME:''),
       referrer:(document.referrer||'').slice(0,200),
       channel:'',
       designVersion:CONFIG.DESIGN_VERSION, referenceMonth:CONFIG.REFERENCE_MONTH,
       startedAt:new Date().toISOString(), completedAt:null,
-      step:0, declined:false, terminated:false, dceIdx:0,
+      step:0, declined:false, terminated:false, quotaFull:false, dceIdx:0,
       orderAtt:Math.random()<0.5?'pre':'post', orderDce:Math.random()<0.5?'A-first':'B-first',
       blockA:Math.floor(Math.random()*DESIGN_A.length), blockB:Math.floor(Math.random()*DESIGN_B.length),
       attOrder, modOrder,
@@ -299,7 +322,7 @@
   let S = initState();
 
   /* ---- resume ---- */
-  const LS_KEY='lm_ev_survey_v414';
+  const LS_KEY='lm_ev_survey_v415';
   function save(){ if(!CONFIG.RESUME) return; try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
   function loadSaved(){ if(!CONFIG.RESUME) return null; try{ const r=localStorage.getItem(LS_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
   function clearSaved(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
@@ -379,6 +402,12 @@
 
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function fmtMoney(n){ if(n==null||n===''||isNaN(+n)) return '—'; return '$'+Math.round(+n).toLocaleString('en-AU'); }
+
+  function panelReturnNote(){
+    if(!S.ppid) return '';
+    return '<p class="intro">Returning you to Pureprofile&hellip;</p>'+
+      (S.exitUrl?'<p class="hint">If you are not redirected within a few seconds, <a href="'+esc(S.exitUrl)+'">click here</a>.</p>':'');
+  }
 
   function radio(name,label,opts,val,field,hint){
     OPTS[field]=opts;
@@ -668,33 +697,38 @@
     S._pageEnter=Date.now();
   }
 
-  function pingScreenOut(kind){
-    if(!CONFIG.SUBMIT_ENDPOINT) return;
-    const body=JSON.stringify({
-      respondentId:S.respondentId, src:S.src, s1:S.s1, age:S.age, suburb:S.suburb,
-      terminated:kind==='terminated', declined:kind==='declined',
-      designVersion:CONFIG.DESIGN_VERSION, completedAt:null
-    });
-    try{ fetch(CONFIG.SUBMIT_ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body}); }catch(e){}
-  }
-
   window.next=function(){
     const e=document.getElementById('err'); if(e) e.remove();
     const f=flow(); const cur=f[S.step]||'done'; const c=cv();
 
     if(cur==='welcome'){
-      if(S.declined){ stampTime(); pingScreenOut('declined'); S.step=f.length; render(); return; }
+      if(S.declined){ stampTime(); S.step=f.length; render(); postExit('declined').then(function(){ return leaveToPanel('declined'); }); return; }
       if(!S.consent){ err('Please select “I agree to take part” to continue.'); return; }
     }
     if(cur==='screening'){
-      if(S.s1==='Neither'){ S.terminated=true; stampTime(); pingScreenOut('terminated'); S.step=f.length; render(); return; }
+      if(S.s1==='Neither'){ S.terminated=true; stampTime(); S.step=f.length; render(); postExit('screened').then(function(){ return leaveToPanel('screened'); }); return; }
       if(!S.s1){ err('Please say whether you live in Lake Macquarie or Newcastle.','s1'); return; }
       if(!S.suburb){ err('Please select your suburb.','suburb'); return; }
       if(S.suburb==='__other__' && !String(S.suburbOther||'').trim()){ err('Please type your suburb.','suburbOther'); return; }
       if(!S.age){ err('Please select your age group.','age'); return; }
-      if(S.age==='Under 18'){ S.terminated=true; stampTime(); pingScreenOut('terminated'); S.step=f.length; render(); return; }
+      if(S.age==='Under 18'){ S.terminated=true; stampTime(); S.step=f.length; render(); postExit('screened').then(function(){ return leaveToPanel('screened'); }); return; }
       if(!S.gender){ err('Please answer this question.','gender'); return; }
       if(!S.driver){ err('Please say whether you currently drive.','driver'); return; }
+      // The LGA is only known once the suburb is in, so an LGA cap can only be enforced here.
+      // Off unless CONFIG.PANEL.QUOTAS carries a non-zero cap.
+      if(S.ppid && !S._quotaChecked){
+        const lga=S.suburbLga||S.s1; const cap=+(CONFIG.PANEL.QUOTAS[lga]||0);
+        if(cap>0){
+          S._quotaChecked=true;                       // set before the async call: next() re-enters below
+          quotaCount(lga).then(function(n){
+            if(n!=null && n>=cap){
+              S.quotaFull=true; stampTime(); S.step=f.length; render();
+              postExit('quotafull').then(function(){ return leaveToPanel('quotafull'); });
+            } else { window.next(); }
+          });
+          return;
+        }
+      }
     }
     if(cur==='travelVeh'){
       if(S.vehicles==null){ err('Please say how many cars or vehicles your household owns or leases.','veh'); return; }
@@ -771,6 +805,59 @@
   /* ==========================================================================
      10. SUBMISSION
      ========================================================================== */
+
+  /* ---- panel exits ----
+     Our exit statuses -> Pureprofile's four endpoints. A consent refusal is reported as a
+     screen-out; the collector still records it as 'declined'. */
+  const EXIT_TO_PANEL={complete:'complete',disqualified:'disqualified',screened:'screened',declined:'screened',quotafull:'quotafull'};
+  let LAST_EXIT_STATUS='';
+
+  function panelUrl(status){
+    const k=EXIT_TO_PANEL[status];
+    return (S.ppid&&k)?CONFIG.PANEL.REDIRECT[k]+encodeURIComponent(S.ppid):'';
+  }
+
+  /* Short record for respondents who leave before the questionnaire proper (screened, declined,
+     quota full). keepalive lets the request outlive the page when a panel redirect follows;
+     the race caps the wait so nobody stares at a blank screen if the endpoint is slow. */
+  async function postExit(status){
+    if(!CONFIG.SUBMIT_ENDPOINT) return;
+    const body=JSON.stringify({
+      respondentId:S.respondentId, ppid:S.ppid, panel:S.panel, src:S.src, referrer:S.referrer,
+      s1:S.s1, suburb:S.suburb, suburbLga:S.suburbLga, age:S.age,
+      exit_status:status, terminated:status==='screened', declined:status==='declined', quotaFull:status==='quotafull',
+      designVersion:CONFIG.DESIGN_VERSION, startedAt:S.startedAt, completedAt:null, timings:S.timings,
+      meta:{ device:(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?'mobile':'desktop'),
+             durationSec:Math.round((Date.now()-new Date(S.startedAt).getTime())/1000) }
+    });
+    const req=fetch(CONFIG.SUBMIT_ENDPOINT,{method:'POST',mode:'no-cors',keepalive:true,
+      headers:{'Content-Type':'text/plain;charset=utf-8'},body}).catch(function(){});
+    await Promise.race([req,new Promise(function(r){setTimeout(r,2500);})]);
+  }
+
+  /* Hand the respondent back to the panel. Returns false for non-panel arrivals, whose end
+     screens are unchanged. Always called AFTER the record has been posted. */
+  async function leaveToPanel(status){
+    const url=panelUrl(status); if(!url) return false;
+    S.exitUrl=url; render();
+    await new Promise(function(r){setTimeout(r,CONFIG.PANEL.REDIRECT_DELAY_MS);});
+    CONFIG.PANEL.NAVIGATE(url);
+    return true;
+  }
+  window.returnToPanel=function(){ leaveToPanel(LAST_EXIT_STATUS||'complete'); };
+
+  /* Live count of completes for one LGA from the collector's doGet. Any failure returns null,
+     and null never blocks a respondent. */
+  async function quotaCount(lga){
+    try{
+      const ctl=new AbortController(); const t=setTimeout(function(){ctl.abort();},3000);
+      const r=await fetch(CONFIG.SUBMIT_ENDPOINT+'?stats=1',{redirect:'follow',signal:ctl.signal});
+      clearTimeout(t);
+      const j=await r.json(); const by=j&&j.counts&&j.counts.complete_by_lga;
+      return (by&&typeof by[lga]==='number')?by[lga]:null;
+    }catch(e){ return null; }
+  }
+
   function payload(){
     const first=S.timingsFirst||{};
     const taskKeys=Object.keys(first).filter(k=>k.indexOf('dceA3_')===0||k.indexOf('dceB3_')===0);
@@ -785,40 +872,59 @@
       straightlined_att: (function(){const v=ATT_IDS.map(i=>S.attitudes[i]).filter(x=>x);return v.length>3&&new Set(v).size===1;})(),
       straightlined_mod: (function(){const v=MOD_IDS.map(i=>S.moderators[i]).filter(x=>x);return v.length===MOD_IDS.length&&new Set(v).size===1;})()
     };
+    // active_sec is time on screens, not wall-clock, so resuming after a break is not speeding.
+    // dq_reason is recorded for everyone; only a panel respondent is ever redirected as
+    // disqualified. The other quality flags stay analysis flags and never affect the reward.
+    const activeSec=Object.keys(S.timings).reduce(function(a,k){return a+(+S.timings[k]||0);},0);
+    const dq=[];
+    if(CONFIG.PANEL.DQ.both_attention_fail && !quality.attn1_pass && !quality.attn2_pass) dq.push('attention_both');
+    if(CONFIG.PANEL.DQ.min_active_sec>0 && activeSec<CONFIG.PANEL.DQ.min_active_sec) dq.push('speeder');
+    quality.active_sec=activeSec; quality.dq_reason=dq.join('|');
+    const exit_status=(S.ppid&&dq.length)?'disqualified':'complete';
     const suburbOut = S.suburb==='__other__' ? (String(S.suburbOther||'').trim()||'Not listed') : S.suburb;
-    return { ...S, suburb:suburbOut, computed: cv(), quality,
+    return { ...S, suburb:suburbOut, computed: cv(), quality, exit_status,
       meta:{ submittedAt:new Date().toISOString(),
              device:(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?'mobile':'desktop'),
              durationSec: Math.round((Date.now()-new Date(S.startedAt).getTime())/1000) } };
   }
+  /* A readable refusal must never fall back to a blind no-cors re-post: that would let a panel
+     respondent be redirected as complete while the collector had rejected the record. */
   async function postOnce(body){
+    let r, txt;
     try{
-      const r = await fetch(CONFIG.SUBMIT_ENDPOINT, { method:'POST', redirect:'follow',
-        headers:{'Content-Type':'text/plain;charset=utf-8'}, body });
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      const txt = (await r.text()).slice(0,300);
-      if(/error|refus|denied|mismatch|exception/i.test(txt) && !/"ok"\s*:\s*true/i.test(txt)) throw new Error(txt);
-      return 'confirmed';
+      r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:'POST',redirect:'follow',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},body});
+      txt=(await r.text()).slice(0,300);
     }catch(e){
-      await fetch(CONFIG.SUBMIT_ENDPOINT, { method:'POST', mode:'no-cors',
-        headers:{'Content-Type':'text/plain;charset=utf-8'}, body });
+      // Network / CORS failure: fire-and-forget so the record has one more chance to land.
+      await fetch(CONFIG.SUBMIT_ENDPOINT,{method:'POST',mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},body});
       return 'unconfirmed';
     }
+    if(r.ok && /"ok"\s*:\s*true/i.test(txt)) return 'confirmed';
+    const err=new Error(txt||('HTTP '+r.status)); err.server=true; throw err;
   }
   window.finish=async function(){
     S.completedAt=new Date().toISOString(); stampTime();
     S.submit.status='sending'; S.step=flow().length; render();
     if(!CONFIG.SUBMIT_ENDPOINT){ S.submit.status='no_endpoint'; render(); return; }
-    const body=JSON.stringify(payload());
+    const p=payload(); LAST_EXIT_STATUS=p.exit_status; const body=JSON.stringify(p);
     for(let a=1;a<=3;a++){
       S.submit.attempts=a;
       try{
         const res=await postOnce(body);
         S.submit.status='sent'; S.submit.confirmed=(res==='confirmed');
-        if(res==='confirmed') clearSaved();
-        render(); return;
+        if(res==='confirmed'||S.ppid) clearSaved();
+        render();
+        // They did the work: an unconfirmed write still earns the redirect, and a lost record
+        // is caught by reconciling the panel's status counts against the sheet.
+        if(S.ppid) await leaveToPanel(p.exit_status);
+        return;
+      }catch(e){
+        S.submit.error=String(e&&e.message||e);
+        if(e&&e.server){ S.submit.status='refused'; render(); return; }
+        await new Promise(function(r){setTimeout(r,a*1500);});
       }
-      catch(e){ S.submit.error=String(e&&e.message||e); await new Promise(r=>setTimeout(r,a*1500)); }
     }
     S.submit.status='failed'; render();
   };
@@ -840,7 +946,7 @@
     const caret=(focusKey&&act.selectionStart!=null)?act.selectionStart:null;
 
     document.getElementById('prog').style.width=(screenPos()/nScreens()*100)+'%';
-    document.getElementById('progtxt').textContent = (S.terminated||S.declined||cur==='done')?'':('Page '+screenPos()+' of '+nScreens());
+    document.getElementById('progtxt').textContent = (S.terminated||S.declined||S.quotaFull||cur==='done')?'':('Page '+screenPos()+' of '+nScreens());
     const suburbOpts=SurveySuburbs.suburbsForLga(S.s1).map(s=>'<option value="'+esc(s.name)+'" '+(S.suburb===s.name?'selected':'')+'>'+esc(s.name)+'</option>').join('');
     const q8b2Opts=(S.s1==='Newcastle'?SurveySuburbs.suburbsForLga('Newcastle'):SurveySuburbs.lakeMacquarieSuburbs()).map(s=>'<option value="'+esc(s.name)+'" '+(S.q8b2===s.name?'selected':'')+'>'+esc(s.name)+'</option>').join('');
     let html='';
@@ -1018,31 +1124,43 @@
       html+='<div class="field"><label class="field-label" for="f_comments">Is there anything else you would like the research team and local councils to know? (optional)</label>'+
         '<textarea id="f_comments" data-fk="comments" rows="4" oninput="setText(\'comments\',this)">'+esc(S.comments)+'</textarea></div>';
 
+    } else if(S.quotaFull){
+      html='<h2>Thank you for your interest</h2><p>We already have enough responses from your area for this study.</p>'+panelReturnNote();
     } else if(S.terminated){
-      html='<h2>Thank you for your interest</h2><p>This survey is open only to Lake Macquarie and Newcastle LGA residents aged 18 and over.</p>';
+      html='<h2>Thank you for your interest</h2><p>This survey is open only to Lake Macquarie and Newcastle LGA residents aged 18 and over.</p>'+panelReturnNote();
     } else if(S.declined){
-      html='<h2>Thank you</h2><p>You have chosen not to take part. You can simply close this page.</p>';
+      html='<h2>Thank you</h2><p>You have chosen not to take part.'+(S.ppid?'':' You can simply close this page.')+'</p>'+panelReturnNote();
     } else {
       const st=S.submit.status;
       if(st==='sending'){
         html='<h2>Sending your answers…</h2><p class="intro">Please keep this page open for a moment.</p>';
       } else if(st==='sent'){
         html='<h2>Thank you — your answers have been received</h2>'+
-          '<p class="intro">Your reference is <span class="code">'+esc(S.respondentId)+'</span>. You can close this page now.</p>'+
-          (S.submit.confirmed?'':'<p class="hint">Please also download a copy of your answers so nothing is lost.</p>')+
-          '<p class="meta"><button class="btn btn-s" onclick="dl()">Download a copy of my answers</button></p>';
+          '<p class="intro">Your reference is <span class="code">'+esc(S.respondentId)+'</span>.'+(S.ppid?'':' You can close this page now.')+'</p>'+
+          (S.ppid
+            ? panelReturnNote()
+            : (S.submit.confirmed?'':'<p class="hint">Please also download a copy of your answers so nothing is lost.</p>')+
+              '<p class="meta"><button class="btn btn-s" onclick="dl()">Download a copy of my answers</button></p>');
+      } else if(st==='refused'){
+        html='<h2>Thank you — one last step</h2>'+
+          '<p class="err">We could not save your answers: the data collection service rejected the submission.</p>'+
+          '<p class="intro">Please press <b>Try again</b>. If that does not work, press <b>Download my answers</b> and email the file to the research team; nothing is lost.</p>'+
+          '<p><button class="btn btn-p" onclick="retrySubmit()">Try again</button> &nbsp; <button class="btn btn-s" onclick="dl()">Download my answers</button></p>'+
+          (S.ppid?'<p class="intro">If it still fails, email the file to the research team and quote your reference — we will make sure your Pureprofile reward is credited.</p>':'')+
+          '<p class="meta">Reference '+esc(S.respondentId)+'</p>';
       } else {
         html='<h2>Thank you — one last step</h2>'+
           '<p class="err">'+(st==='no_endpoint'
             ? 'This copy of the survey is not connected to a data collection endpoint, so your answers could not be sent automatically.'
             : 'We could not send your answers automatically (attempt '+S.submit.attempts+' of 3 failed).')+'</p>'+
           '<p class="intro">Please press <b>Try again</b>. If that does not work, press <b>Download my answers</b> and email the file to the research team; nothing is lost.</p>'+
-          '<p><button class="btn btn-p" onclick="retrySubmit()">Try again</button> &nbsp; <button class="btn btn-s" onclick="dl()">Download my answers</button></p>'+
+          '<p><button class="btn btn-p" onclick="retrySubmit()">Try again</button> &nbsp; <button class="btn btn-s" onclick="dl()">Download my answers</button>'+
+          (S.ppid?' &nbsp; <button class="btn btn-s" onclick="returnToPanel()">Return to Pureprofile</button>':'')+'</p>'+
           '<p class="meta">Reference '+esc(S.respondentId)+'</p>';
       }
     }
 
-    const showNav = cur!=='done' && !S.terminated && !S.declined;
+    const showNav = cur!=='done' && !S.terminated && !S.declined && !S.quotaFull;
     document.getElementById('main').innerHTML = html + (showNav
       ? '<div class="nav"><button class="btn btn-s" onclick="back()" '+(S.step===0?'disabled':'')+'>Back</button>'+
         '<button class="btn btn-p" onclick="'+(cur==='demo'?'finish()':'next()')+'">'+(cur==='demo'?'Submit':'Continue')+'</button></div>'
@@ -1091,8 +1209,11 @@
      13. INIT
      ========================================================================== */
   (function init(){
-    const saved=loadSaved();
-    if(saved && saved.step>0 && !saved.completedAt){
+    let saved=loadSaved();
+    // A saved session belongs to this arrival only if the panel id matches (both empty is a match).
+    // A household sharing one device, or a panellist re-invited under a new id, starts fresh.
+    if(saved && String(saved.ppid||'')!==S.ppid){ clearSaved(); saved=null; }
+    if(saved && saved.step>0 && !saved.completedAt && !saved.terminated && !saved.declined && !saved.quotaFull){
       const mins=Math.round((Date.now()-new Date(saved.startedAt).getTime())/60000);
       if(mins<7*24*60 && confirm('You started this survey earlier on this device. Continue where you left off?\n\nPress OK to continue, or Cancel to start again.')){
         S=Object.assign(initState(),saved); S._pageEnter=Date.now();
