@@ -598,11 +598,11 @@
     return helper+'<div class="dce-wrap"><table class="dce-table"><tr><th>&nbsp;</th><th>Petrol car</th><th>Electric vehicle (EV)</th><th>'+esc(sq)+'</th></tr>'+
       rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>').join('')+
       '<tr class="choose"><td><b>Your choice</b></td>'+
-      items.map(v=>'<td><label class="dce-choice"><input type="radio" name="'+name+'" '+(picked(v[0])?'checked':'')+
+      items.map(v=>'<td><label class="dce-choice"><input type="radio" name="'+name+'_tbl" '+(picked(v[0])?'checked':'')+
         ' onchange="'+pick(v[0])+'"> '+v[1]+'</label></td>').join('')+'</tr></table>'+
       '<div class="dce-cards">'+items.map((v,ci)=>
         '<div class="dce-card"><h3>'+esc(heads[ci])+'</h3><dl>'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[ci+1]+'</dd>').join('')+
-        '</dl><label class="dce-choice"><input type="radio" name="'+name+'" '+(picked(v[0])?'checked':'')+
+        '</dl><label class="dce-choice"><input type="radio" name="'+name+'_card" '+(picked(v[0])?'checked':'')+
         ' onchange="'+pick(v[0])+'"> '+v[1]+'</label></div>').join('')+'</div></div>';
   }
 
@@ -649,11 +649,11 @@
     return '<div class="dce-wrap"><table class="dce-table"><tr><th>&nbsp;</th><th>'+esc(c.sqLabel)+'</th><th>Take the bus</th></tr>'+
       rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')+
       '<tr class="choose"><td><b>Your choice</b></td>'+
-      items.map(v=>'<td><label class="dce-choice"><input type="radio" name="'+name+'" '+(picked(v[0])?'checked':'')+
+      items.map(v=>'<td><label class="dce-choice"><input type="radio" name="'+name+'_tbl" '+(picked(v[0])?'checked':'')+
         ' onchange="'+pick(v[0])+'"> '+esc(v[1])+'</label></td>').join('')+'</tr></table>'+
       '<div class="dce-cards">'+items.map((v,ci)=>
         '<div class="dce-card"><h3>'+esc(heads[ci])+'</h3><dl>'+rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[ci+1]+'</dd>').join('')+
-        '</dl><label class="dce-choice"><input type="radio" name="'+name+'" '+(picked(v[0])?'checked':'')+
+        '</dl><label class="dce-choice"><input type="radio" name="'+name+'_card" '+(picked(v[0])?'checked':'')+
         ' onchange="'+pick(v[0])+'"> '+esc(v[1])+'</label></div>').join('')+'</div></div>';
   }
 
